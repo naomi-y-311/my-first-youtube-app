@@ -115,7 +115,7 @@
             const subsData = await subsResponse.json();
             const channelIds = subsData.items.map((item) => item.snippet.resourceId.channelId);
             const allVideos = [];
-            for (const channelId of channelIds.slice(0, 5)) {
+            for (const channelId of channelIds.slice(0, 2)) {
               try {
                 const videosResponse = await fetch(
                   `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=3`,
