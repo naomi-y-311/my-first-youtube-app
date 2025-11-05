@@ -102,7 +102,7 @@
           setError(null);
           try {
             const subsResponse = await fetch(
-              `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50&key=${API_KEY}`,
+              `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             if (!subsResponse.ok) {
@@ -118,7 +118,7 @@
             for (const channelId of channelIds.slice(0, 20)) {
               try {
                 const videosResponse = await fetch(
-                  `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=3&key=${API_KEY}`,
+                  `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=3`,
                   { headers: { Authorization: `Bearer ${token}` } }
                 );
                 if (videosResponse.ok) {
