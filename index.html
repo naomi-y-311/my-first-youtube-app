@@ -18,10 +18,14 @@
     <script type="text/babel">
       const { useState, useEffect } = React;
 
-      // ✅ lucide.init() を後で呼ぶことでSVGを自動描画
-      const Icon = ({ name, size = 24, color = "currentColor" }) => (
-        <i data-lucide={name} style={{ width: size, height: size, color }}></i>
-      );
+      // React 内で直接 lucide のSVGを描画
+      const Icon = ({ name, size = 24, color = "currentColor" }) => {
+        const icon = lucide.icons[name];
+        if (!icon) return null;
+        const svg = icon.toSvg({ width: size, height: size, color });
+        return <span dangerouslySetInnerHTML={{ __html: svg }} />;
+      };
+
 
       const API_KEY = "AIzaSyAQj9_bs47GFmHx4dhOM_DVwWhj0gT2ma0";
       const CLIENT_ID = "209571413251-6d0i4q3ud75boi9k874e1s0mhf4t53aa.apps.googleusercontent.com";
