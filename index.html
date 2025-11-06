@@ -82,7 +82,6 @@
           }
         }, []);
 
-        // ✅ APIクォータ節約：30分キャッシュ
         const fetchVideos = async (token) => {
           setLoading(true);
           try {
@@ -90,52 +89,75 @@
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
               const { data, timestamp } = JSON.parse(cached);
-              if (Date.now() - timestamp < 30 * 60 * 1000) {
+              if (Date.now() - timestamp < 12 * 60 * 60 * 1000) { // 12時間キャッシュ
                 setVideos(data);
                 setLoading(false);
                 return;
               }
             }
-
+        
+            // 1️⃣ 購読チャンネル一覧を取得
             const subsResponse = await fetch(
               `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             const subsData = await subsResponse.json();
+            if (!subsData.items) throw new Error("チャンネル一覧が取得できませんでした");
             const channelIds = subsData.items.map(
               (item) => item.snippet.resourceId.channelId
             );
-
-            const allVideos = [];
-            for (const channelId of channelIds.slice(0, 5)) {
-              const videosResponse = await fetch(
-                `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=3`,
+        
+            // 2️⃣ 各チャンネルの uploads playlist を取得
+            const uploadsMap = {};
+            for (const batch of Array.from({ length: Math.ceil(channelIds.length / 10) }, (_, i) =>
+              channelIds.slice(i * 10, (i + 1) * 10)
+            )) {
+              const channelsResponse = await fetch(
+                `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${batch.join(",")}`,
                 { headers: { Authorization: `Bearer ${token}` } }
               );
-              const videosData = await videosResponse.json();
-              if (videosData.items) allVideos.push(...videosData.items);
+              const channelsData = await channelsResponse.json();
+              if (channelsData.items) {
+                channelsData.items.forEach((ch) => {
+                  uploadsMap[ch.id] = ch.contentDetails.relatedPlaylists.uploads;
+                });
+              }
             }
-
+        
+            // 3️⃣ 各 uploads playlist から最新動画を取得（クォータ1unit/playlist）
+            const allVideos = [];
+            for (const uploadsId of Object.values(uploadsMap)) {
+              const playlistResponse = await fetch(
+                `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsId}&maxResults=3`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const playlistData = await playlistResponse.json();
+              if (playlistData.items) allVideos.push(...playlistData.items);
+            }
+        
+            // 4️⃣ 公開日順で最新10件だけ残す
             allVideos.sort(
               (a, b) =>
                 new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt)
             );
-
-            setVideos(allVideos);
+            const latest10 = allVideos.slice(0, 10);
+        
+            setVideos(latest10);
             setError(null);
-
-            // ✅ キャッシュ保存
+        
+            // 5️⃣ キャッシュ保存
             localStorage.setItem(
               cacheKey,
-              JSON.stringify({ data: allVideos, timestamp: Date.now() })
+              JSON.stringify({ data: latest10, timestamp: Date.now() })
             );
           } catch (err) {
-            console.error(err);
+            console.error("YouTube API error:", err);
             setError("動画の取得中にエラーが発生しました。");
           } finally {
             setLoading(false);
           }
         };
+
 
         useEffect(() => {
           if (accessToken) fetchVideos(accessToken);
