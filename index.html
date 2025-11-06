@@ -24,17 +24,33 @@
       const { useState, useEffect } = React;
 
       // ✅ lucideアイコン描画（UMD版対応）
-      const Icon = ({ name, size = 24, color = "currentColor" }) => {
-        const iconFn = lucide[name];
-        if (!iconFn) return null;
-        const svg = iconFn({ width: size, height: size, color });
-        return (
-          <span
-            style={{ pointerEvents: "none" }}
-            dangerouslySetInnerHTML={{ __html: svg.outerHTML }}
-          />
-        );
-      };
+ const Icon = ({ name, size = 24, color = "currentColor" }) => {
+  try {
+    const iconData = lucide.icons[name];
+    if (!iconData) return null;
+
+    // lucide.createElement でSVGノードを生成
+    const svgElement = lucide.createElement(iconData);
+
+    // サイズと色を適用
+    svgElement.setAttribute("width", size);
+    svgElement.setAttribute("height", size);
+    svgElement.setAttribute("stroke", color);
+    svgElement.setAttribute("fill", "none");
+    svgElement.setAttribute("stroke-width", "2");
+
+    return (
+      <span
+        style={{ pointerEvents: "none", display: "inline-flex", verticalAlign: "middle" }}
+        dangerouslySetInnerHTML={{ __html: svgElement.outerHTML }}
+      />
+    );
+  } catch (e) {
+    console.error("Icon render error:", name, e);
+    return null;
+  }
+};
+
 
       const CLIENT_ID =
         "209571413251-6d0i4q3ud75boi9k874e1s0mhf4t53aa.apps.googleusercontent.com";
